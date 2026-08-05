@@ -1,0 +1,110 @@
+# =========================
+# IntelliJ IDEA
+# =========================
+.idea/
+*.iml
+
+# =========================
+# Eclipse
+# =========================
+.project
+.classpath
+.settings/
+
+# =========================
+# VS Code
+# =========================
+.vscode/
+
+# =========================
+# Maven
+# =========================
+target/
+!.mvn/wrapper/maven-wrapper.jar
+
+# Maven Wrapper
+.mvn/wrapper/maven-wrapper.properties
+
+# =========================
+# Java
+# =========================
+*.class
+*.log
+*.ctxt
+hs_err_pid*
+replay_pid*
+
+# =========================
+# Spring Boot
+# =========================
+*.pid
+*.seed
+*.pid.lock
+
+# =========================
+# OS Files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Environment Files
+# =========================
+.env
+.env.*
+!.env.example
+
+# =========================
+# Logs
+# =========================
+logs/
+*.log
+
+# =========================
+# Temporary Files
+# =========================
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+
+# =========================
+# Generated Documentation
+# =========================
+out/
+bin/
+
+# =========================
+# Database Files
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+*.mv.db
+*.trace.db
+
+# =========================
+# Coverage
+# =========================
+coverage/
+jacoco.exec
+
+# =========================
+# Node (if ever added later)
+# =========================
+node_modules/
+
+# =========================
+# Mac/Linux
+# =========================
+.AppleDouble
+.LSOverride
+
+# =========================
+# Windows
+# =========================
+Desktop.ini
+$RECYCLE.BIN/
+
+Docs

@@ -1,0 +1,12 @@
+public enum EventType {
+
+    CONNECT,
+    DISCONNECT,
+    RESTART,
+    POWER_FAILURE,
+    SIGNAL_LOSS,
+    HIGH_CPU,
+    HIGH_TEMPERATURE,
+    RECOVER
+
+}
