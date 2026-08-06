@@ -1,0 +1,619 @@
+BroadcastSim — Project Summary (v1.0)
+Project Vision
+
+BroadcastSim is a Digital Twin of a Broadcast Network.
+
+It is not:
+
+A CRUD application
+A video streaming platform
+A monitoring dashboard
+
+It is a logical broadcast network simulator, inspired by Cisco Packet Tracer, that allows users to design, configure, simulate, and analyze a complete television broadcast infrastructure.
+
+The simulator models engineering behavior, signal propagation, device interaction, and fault analysis without processing actual video.
+
+Objectives
+Understand broadcast infrastructure
+Learn broadcasting concepts
+Simulate broadcast devices
+Understand signal propagation
+Observe engineering cause-and-effect
+Build a reusable simulation engine
+Create a unique portfolio project for companies like Evertz
+Technology Stack
+Core Engine
+Java 21
+Maven
+Lombok
+JUnit 5
+
+No Spring dependencies.
+
+Web Application
+Spring Boot
+Thymeleaf
+Bootstrap
+Vanilla JavaScript
+WebSocket
+PostgreSQL
+Architecture
+
+The project is divided into two modules.
+
+BroadcastSim
+
+├── broadcastsim-core
+└── broadcastsim-web
+broadcastsim-core
+
+Pure Java.
+
+Contains
+
+Devices
+Simulation Engine
+Rule Engine
+Signal Engine
+Event Engine
+Alarm Engine
+Registries
+Timeline
+
+No Spring Boot.
+
+broadcastsim-web
+
+Spring Boot application.
+
+Contains
+
+REST APIs
+WebSocket
+Thymeleaf
+PostgreSQL
+Controllers
+Services
+
+Depends on
+
+broadcastsim-core
+Overall Architecture
+Browser
+
+↓
+
+Thymeleaf
+
+↓
+
+REST + WebSocket
+
+↓
+
+Spring Boot
+
+↓
+
+Broadcast Engine
+
+├── Device Manager
+├── Simulation Clock
+├── Event Queue
+├── Rule Engine
+├── Signal Engine
+├── Alarm Engine
+├── Timeline
+└── Registries
+
+↓
+
+PostgreSQL
+Simulation Model
+
+BroadcastSim is tick-based.
+
+Every
+
+100–500 ms
+
+the engine executes
+
+Process Events
+
+↓
+
+Update Devices
+
+↓
+
+Execute Rules
+
+↓
+
+Propagate Signals
+
+↓
+
+Generate Alarms
+
+↓
+
+Timeline
+
+↓
+
+WebSocket Update
+Core Modules
+Device Library
+Topology Builder
+Device Configuration
+Broadcast Engine
+Rule Engine
+Signal Engine
+Event Engine
+Alarm Engine
+Timeline
+Scenario Manager
+Dashboard
+Devices (Version 1)
+Camera
+Video Router
+Encoder
+Decoder
+Media Server
+Viewer
+
+Future
+
+Graphics Engine
+Replay Server
+Audio Mixer
+CDN
+Satellite
+Multiviewer
+Device Framework
+
+Every device implements
+
+Device (Interface)
+
+↓
+
+AbstractDevice
+
+↓
+
+Camera
+Router
+Encoder
+Decoder
+MediaServer
+Viewer
+
+Every device contains
+
+Identity
+Profile
+Properties
+Ports
+Signals
+State
+Events
+
+Every device exposes
+
+initialize()
+update()
+calculate()
+applyEvent()
+receiveSignal()
+generateSignal()
+Device Lifecycle
+CREATED
+
+↓
+
+ONLINE
+
+↓
+
+WARNING
+
+↓
+
+FAILED
+
+↓
+
+RECOVERING
+
+↓
+
+ONLINE
+Simulation Engine
+
+Contains
+
+BroadcastEngine
+
+SimulationClock
+
+DeviceRegistry
+
+ConnectionRegistry
+
+EventQueue
+
+RuleEngine
+
+SignalEngine
+
+AlarmEngine
+
+Timeline
+Rule Engine
+
+No machine learning.
+
+Everything follows deterministic engineering rules.
+
+Example
+
+FPS ↑
+
+↓
+
+Bandwidth ↑
+
+↓
+
+CPU ↑
+
+↓
+
+Power ↑
+
+↓
+
+Temperature ↑
+
+↓
+
+Health Changes
+
+Each device owns its own rule model.
+
+Example
+
+CameraRuleModel
+
+EncoderRuleModel
+
+RouterRuleModel
+Signal Engine
+
+BroadcastSim simulates logical signals, not video.
+
+Signal contains
+
+Resolution
+FPS
+Codec
+Bitrate
+Quality
+Latency
+Status
+
+Signal states
+
+ACTIVE
+DEGRADED
+LOST
+BLOCKED
+
+Signals propagate
+
+Camera
+
+↓
+
+Router
+
+↓
+
+Encoder
+
+↓
+
+Viewer
+
+Failures also propagate.
+
+Example
+
+Camera Offline
+
+↓
+
+Router No Signal
+
+↓
+
+Encoder Black Frame
+
+↓
+
+Viewer No Video
+Connection Model
+
+Connections
+
+Source Device
+
+↓
+
+Source Port
+
+↓
+
+Target Port
+
+↓
+
+Target Device
+
+Every connection contains
+
+Source
+Target
+Ports
+Status
+Ports
+
+Camera
+
+OUT1
+
+Router
+
+IN1
+
+OUT1
+
+Encoder
+
+IN1
+
+OUT1
+
+Events
+
+Version 1
+
+Connect
+Disconnect
+Restart
+Recover
+Power Failure
+Signal Loss
+High CPU
+High Temperature
+Alarm Engine
+
+Alarm Levels
+
+INFO
+WARNING
+CRITICAL
+
+Generated from thresholds.
+
+Device Profiles
+
+Instead of configuring every device manually.
+
+Example
+
+Generic Camera
+
+1080p
+
+30 FPS
+
+5W
+
+Generic Encoder
+
+H264
+
+8 Mbps
+
+1080p
+
+Profiles are reusable templates.
+
+Property System (Final Design)
+
+Properties are the foundation of the simulator.
+
+Every property has
+
+PropertyKey
+Display Name
+Value
+Default Value
+ValueType
+Category
+Unit
+Access
+Min
+Max
+Warning Threshold
+Critical Threshold
+Description
+
+Uses
+
+Property<T>
+
+Generics.
+
+Properties are mutable through
+
+updateValue(...)
+
+Never directly via setters.
+
+Properties stored inside devices
+
+Map<PropertyKey, Property<?>>
+
+Not strings.
+
+Enums Completed
+DeviceType
+DeviceState
+SignalStatus
+EventType
+AlarmSeverity
+SimulationState
+PropertyCategory
+ValueType
+PropertyUnit
+PropertyAccess
+PortType
+PortDirection
+ConnectionStatus
+PropertyKey
+Design Patterns
+Factory
+Strategy
+Observer
+State
+Command
+Registry
+Coding Principles
+SOLID
+Clean Architecture
+Low Coupling
+High Cohesion
+No Magic Strings
+Enum-based Domain Model
+Interface-first Design
+Composition where appropriate
+Repository Structure
+BroadcastSim/
+
+docs/
+
+broadcastsim-core/
+
+broadcastsim-web/
+
+README.md
+
+LICENSE
+Core Package Structure
+com.broadcastsim.core
+
+alarm
+
+common
+    enums
+    constants
+
+connection
+
+device
+    base
+    camera
+    encoder
+    router
+    decoder
+    mediaserver
+    viewer
+
+engine
+
+event
+
+profile
+
+property
+
+registry
+
+rule
+
+scenario
+
+signal
+
+timeline
+
+util
+Development Roadmap
+Phase 0
+
+Design ✅
+
+Sprint 1
+Core Enums ✅
+Property System (Current)
+Device Framework
+Sprint 2
+
+Simulation Engine
+
+Sprint 3
+
+Signal Engine
+
+Sprint 4
+
+Rule Engine
+
+Sprint 5
+
+Concrete Devices
+
+Sprint 6
+
+Alarm Engine
+
+Timeline
+
+Sprint 7
+
+Spring Boot Integration
+
+Sprint 8
+
+Frontend
+
+Sprint 9
+
+Scenario Manager
+
+Current Progress
+Completed
+SRS
+HLD
+Device Framework Design
+Simulation Engine Design
+Rule Engine Design
+Signal Engine Design
+Repository Architecture
+Package Structure
+Development Roadmap
+Core Enums
+Current Milestone
+
+Sprint 1 → Milestone 2
+
+Implementing the Property System, which is the foundation for all devices, rules, and UI interactions.
+
+Long-Term Vision
+
+BroadcastSim should become a reusable broadcast simulation engine that can power multiple frontends (Spring Boot, JavaFX, CLI, etc.) while remaining independent of any specific UI technology. The Spring Boot application is simply one interface built on top of that engine.

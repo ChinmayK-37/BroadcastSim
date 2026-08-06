@@ -1,7 +1,5 @@
 public enum AlarmSeverity {
-
-    INFO,
-    WARNING,
-    CRITICAL
-
+  INFO,
+  WARNING,
+  CRITICAL
 }
