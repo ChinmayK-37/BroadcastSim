@@ -7,5 +7,6 @@
     <module name="TreeWalker">
         <module name="AvoidStarImport"/>
         <module name="NeedBraces"/>
+        <module name="PackageDeclaration"/>
     </module>
 </module>
