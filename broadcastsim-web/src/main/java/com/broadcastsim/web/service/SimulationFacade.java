@@ -2,12 +2,17 @@ package com.broadcastsim.web.service;
 
 import com.broadcastsim.core.alarm.Alarm;
 import com.broadcastsim.core.common.enums.AlarmState;
+import com.broadcastsim.core.common.enums.DeviceType;
+import com.broadcastsim.core.common.enums.PropertyKey;
 import com.broadcastsim.core.device.base.AbstractDevice;
 import com.broadcastsim.core.engine.BroadcastEngine;
 import com.broadcastsim.core.engine.SimulationTickResult;
+import com.broadcastsim.core.scenario.ScenarioEvent;
 import com.broadcastsim.core.timeline.SimulationSnapshot;
 import com.broadcastsim.web.dto.DeviceStatusResponse;
 import com.broadcastsim.web.dto.SimulationStatusResponse;
+import com.broadcastsim.web.dto.TimelineSnapshotResponse;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -102,8 +107,80 @@ public class SimulationFacade {
     return broadcastEngine.getTimeline().getAllSnapshots();
   }
 
+  /**
+   * Returns the ten most recent timeline snapshots in simulation-time order.
+   *
+   * @return recent simulation snapshots
+   */
+  public synchronized List<TimelineSnapshotResponse> recentTimeline() {
+    List<SimulationSnapshot> snapshots = timeline();
+    return snapshots.subList(Math.max(0, snapshots.size() - 10), snapshots.size()).stream()
+        .map(this::timelineSnapshot)
+        .toList();
+  }
+
+  /**
+   * Returns elapsed simulation time derived from the existing clock.
+   *
+   * @return elapsed simulation time in {@code HH:mm:ss} format
+   */
+  public synchronized String elapsedSimulationTime() {
+    return formatElapsedTime(
+        broadcastEngine
+            .getContext()
+            .getSimulationClock()
+            .getTickInterval()
+            .multipliedBy(broadcastEngine.getContext().getSimulationClock().getCurrentTick()));
+  }
+
+  /**
+   * Schedules a camera frame-rate update for the next simulation tick.
+   *
+   * @param framesPerSecond requested camera frame rate
+   * @return current simulation status
+   */
+  public synchronized SimulationStatusResponse scheduleCameraFramesPerSecond(
+      double framesPerSecond) {
+    AbstractDevice camera =
+        broadcastEngine.getContext().getDeviceRegistry().getByType(DeviceType.CAMERA).stream()
+            .filter(AbstractDevice.class::isInstance)
+            .map(AbstractDevice.class::cast)
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException("configured camera is not available"));
+    broadcastEngine
+        .getScenario()
+        .schedule(
+            ScenarioEvent.setProperty(
+                nextSimulationTimestamp(), camera.getDeviceId(), PropertyKey.FPS, framesPerSecond));
+    return status();
+  }
+
   private Instant simulationTime() {
     return latestTick == null ? Instant.EPOCH : latestTick.timestamp();
+  }
+
+  private Instant nextSimulationTimestamp() {
+    long nextTick = broadcastEngine.getContext().getSimulationClock().getCurrentTick() + 1;
+    return Instant.EPOCH.plus(
+        broadcastEngine.getContext().getSimulationClock().getTickInterval().multipliedBy(nextTick));
+  }
+
+  private TimelineSnapshotResponse timelineSnapshot(SimulationSnapshot simulationSnapshot) {
+    return new TimelineSnapshotResponse(
+        formatElapsedTime(Duration.between(Instant.EPOCH, simulationSnapshot.getSimulationTime())),
+        simulationSnapshot.getDeviceSnapshots().size(),
+        simulationSnapshot.getDeviceSnapshots().isEmpty()
+            ? null
+            : simulationSnapshot.getDeviceSnapshots().getFirst().getHealthStatus(),
+        simulationSnapshot.getActiveAlarms().size());
+  }
+
+  private String formatElapsedTime(Duration elapsedTime) {
+    long totalSeconds = elapsedTime.toSeconds();
+    long hours = totalSeconds / 3600;
+    long minutes = (totalSeconds % 3600) / 60;
+    long seconds = totalSeconds % 60;
+    return String.format("%02d:%02d:%02d", hours, minutes, seconds);
   }
 
   private List<DeviceStatusResponse> deviceStatuses() {

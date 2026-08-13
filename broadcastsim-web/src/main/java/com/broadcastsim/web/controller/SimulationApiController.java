@@ -7,6 +7,7 @@ import java.util.List;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /** Exposes manual simulation lifecycle controls through the MVP REST API. */
@@ -83,6 +84,18 @@ public class SimulationApiController {
   @PostMapping("/tick")
   public SimulationStatusResponse tick() {
     return simulationFacade.tick();
+  }
+
+  /**
+   * Schedules a camera frame-rate change for the next simulation tick.
+   *
+   * @param framesPerSecond requested camera frame rate
+   * @return current simulation status
+   */
+  @PostMapping("/camera/fps")
+  public SimulationStatusResponse scheduleCameraFramesPerSecond(
+      @RequestParam("framesPerSecond") double framesPerSecond) {
+    return simulationFacade.scheduleCameraFramesPerSecond(framesPerSecond);
   }
 
   /**

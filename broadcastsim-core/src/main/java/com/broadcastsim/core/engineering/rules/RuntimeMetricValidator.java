@@ -4,6 +4,7 @@ import com.broadcastsim.core.device.runtime.DeviceMetrics;
 import com.broadcastsim.core.engineering.constants.CpuConstants;
 import com.broadcastsim.core.engineering.constants.MemoryConstants;
 import com.broadcastsim.core.engineering.constants.NetworkConstants;
+import com.broadcastsim.core.engineering.constants.TemperatureConstants;
 import java.util.Objects;
 
 /** Validates calculated runtime metrics against caller-supplied engineering limits. */
@@ -24,6 +25,8 @@ final class RuntimeMetricValidator {
         || requiredMetrics.getMemoryUsageMb() < MemoryConstants.MINIMUM_MEMORY_MEGABYTES
         || !Double.isFinite(requiredMetrics.getTemperatureCelsius())
         || requiredMetrics.getTemperatureCelsius() < ambientTemperatureCelsius
+        || requiredMetrics.getTemperatureCelsius()
+            > TemperatureConstants.MAXIMUM_TEMPERATURE_CELSIUS
         || !Double.isFinite(requiredMetrics.getPowerConsumptionWatts())
         || requiredMetrics.getPowerConsumptionWatts() < idlePowerWatts
         || requiredMetrics.getPowerConsumptionWatts() > maximumPowerWatts

@@ -1,5 +1,6 @@
 package com.broadcastsim.core.engineering.rules;
 
+import com.broadcastsim.core.common.enums.OperationalFailureType;
 import com.broadcastsim.core.device.encoder.Encoder;
 import com.broadcastsim.core.device.runtime.DeviceMetrics;
 import com.broadcastsim.core.device.runtime.DeviceRuntime;
@@ -69,9 +70,10 @@ public final class EncoderRuleModel {
               .powerConsumptionWatts(power)
               .bandwidthMegabitsPerSecond(requiredEncoder.getTargetBitrateMegabitsPerSecond())
               .build();
-      validateOutputs(metrics);
       runtime.updateMetrics(metrics);
       runtime.updateLastUpdated(requiredTimestamp);
+      recordThermalOperatingLimitFailure(runtime, metrics);
+      validateOutputs(metrics);
       return result(
           requiredEncoder,
           runtime,
@@ -103,6 +105,12 @@ public final class EncoderRuleModel {
         TemperatureConstants.AMBIENT_TEMPERATURE_CELSIUS,
         PowerConstants.ENCODER_IDLE_POWER_WATTS,
         PowerConstants.ENCODER_MAXIMUM_POWER_WATTS);
+  }
+
+  private void recordThermalOperatingLimitFailure(DeviceRuntime runtime, DeviceMetrics metrics) {
+    if (metrics.getTemperatureCelsius() > TemperatureConstants.MAXIMUM_TEMPERATURE_CELSIUS) {
+      runtime.addOperationalFailure(OperationalFailureType.THERMAL_PROTECTION_SHUTDOWN);
+    }
   }
 
   private double resolutionWeight(Resolution resolution) {

@@ -2,9 +2,12 @@ package com.broadcastsim.core.engineering.rules;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.broadcastsim.core.common.enums.DeviceState;
 import com.broadcastsim.core.common.enums.DeviceType;
+import com.broadcastsim.core.common.enums.OperationalFailureType;
 import com.broadcastsim.core.common.enums.PortDirection;
 import com.broadcastsim.core.common.enums.PortType;
 import com.broadcastsim.core.common.enums.PropertyAccess;
@@ -128,6 +131,45 @@ class DeviceRuleModelTest {
   }
 
   @Test
+  void validatesTemperatureAgainstAmbientAndEcsOperatingLimits() {
+    DeviceMetrics belowAmbientTemperature = metrics(24.99);
+    DeviceMetrics maximumTemperature = metrics(120.0);
+    DeviceMetrics aboveMaximumTemperature = metrics(120.01);
+
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> RuntimeMetricValidator.validate(belowAmbientTemperature, 25.0, 20.0, 80.0));
+    RuntimeMetricValidator.validate(maximumTemperature, 25.0, 20.0, 80.0);
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> RuntimeMetricValidator.validate(aboveMaximumTemperature, 25.0, 20.0, 80.0));
+  }
+
+  @Test
+  void retainsCalculatedTemperatureAboveOperatingLimitAndRecordsThermalFailure() {
+    Encoder encoder =
+        new Encoder(
+            DeviceId.generate(DeviceType.ENCODER),
+            encoderProfile(),
+            runtime(163.116),
+            inputPort(),
+            outputPort());
+    encoder.initialize();
+    encoder.receiveSignal(signal());
+
+    RuleExecutionResult result = new EncoderRuleModel().execute(encoder, EXECUTION_TIMESTAMP);
+
+    assertEquals(ExecutionStatus.FAILURE, result.getExecutionStatus());
+    assertEquals(ValidationStatus.INVALID, result.getValidationStatus());
+    assertEquals(164.344, encoder.getDeviceRuntime().getMetrics().getTemperatureCelsius());
+    assertTrue(
+        encoder
+            .getDeviceRuntime()
+            .getOperationalFailures()
+            .contains(OperationalFailureType.THERMAL_PROTECTION_SHUTDOWN));
+  }
+
+  @Test
   void videoRouterRuleCalculatesRoutedThroughputAndRuntimeMetrics() {
     VideoRouter router =
         new VideoRouter(DeviceId.generate(DeviceType.ROUTER), routerProfile(), runtime());
@@ -243,18 +285,22 @@ class DeviceRuleModelTest {
   }
 
   private DeviceRuntime runtime() {
+    return runtime(25.0);
+  }
+
+  private DeviceRuntime runtime(double temperatureCelsius) {
     return new DeviceRuntime(
-        DeviceState.CREATED,
-        DeviceMetrics.builder()
-            .cpuUsagePercentage(0.0)
-            .memoryUsageMb(0.0)
-            .temperatureCelsius(25.0)
-            .powerConsumptionWatts(0.0)
-            .bandwidthMegabitsPerSecond(0.0)
-            .build(),
-        100.0,
-        Instant.EPOCH,
-        Set.of());
+        DeviceState.CREATED, metrics(temperatureCelsius), 100.0, Instant.EPOCH, Set.of());
+  }
+
+  private DeviceMetrics metrics(double temperatureCelsius) {
+    return DeviceMetrics.builder()
+        .cpuUsagePercentage(23.0)
+        .memoryUsageMb(704.0)
+        .temperatureCelsius(temperatureCelsius)
+        .powerConsumptionWatts(33.8)
+        .bandwidthMegabitsPerSecond(8.0)
+        .build();
   }
 
   private Signal signal() {

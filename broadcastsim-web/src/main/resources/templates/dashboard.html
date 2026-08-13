@@ -3,51 +3,287 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>BroadcastSim MVP</title>
+  <title>BroadcastSim</title>
+  <link rel="stylesheet" th:href="@{/dashboard.css}">
 </head>
 <body>
-  <h1>BroadcastSim</h1>
-  <p>State: <strong th:text="${status.simulationState}">STOPPED</strong></p>
-  <p>Simulation time: <span th:text="${status.simulationTime}">1970-01-01T00:00:00Z</span></p>
-  <p>Tick: <span th:text="${status.currentTick}">0</span></p>
+  <main class="dashboard">
+    <header class="dashboard-header">
+      <h1>BroadcastSim</h1>
+    </header>
 
-  <button type="button" onclick="control('start')">Start</button>
-  <button type="button" onclick="control('pause')">Pause</button>
-  <button type="button" onclick="control('resume')">Resume</button>
-  <button type="button" onclick="control('stop')">Stop</button>
-  <button type="button" onclick="control('tick')">Tick</button>
+    <div class="dashboard-main">
+      <section class="card control-panel" aria-labelledby="simulation-status">
+        <h2 id="simulation-status">Simulation</h2>
+        <dl class="status-list">
+          <div>
+            <dt>Status</dt>
+            <dd><span id="simulation-state" class="status-badge" th:classappend="' state-' + ${#strings.toLowerCase(status.simulationState.name())}" th:data-state="${status.simulationState}" th:text="${status.simulationState}">STOPPED</span></dd>
+          </div>
+          <div><dt>Time</dt><dd id="simulation-time" th:text="${elapsedSimulationTime}">00:00:00</dd></div>
+          <div><dt>Tick</dt><dd id="simulation-tick" th:text="${status.currentTick}">0</dd></div>
+          <div><dt>Devices</dt><dd id="device-count" th:text="${#lists.size(status.devices)}">3</dd></div>
+          <div><dt>Alarms</dt><dd id="alarm-count" th:text="${#lists.size(status.activeAlarms)}">0</dd></div>
+        </dl>
+        <div class="controls lifecycle-controls" aria-label="Simulation controls">
+          <button id="start-control" type="button" onclick="control('start')" th:disabled="${status.simulationState != T(com.broadcastsim.core.common.enums.SimulationState).STOPPED}">Start</button>
+          <button id="pause-control" type="button" onclick="control('pause')" th:disabled="${status.simulationState != T(com.broadcastsim.core.common.enums.SimulationState).RUNNING}">Pause</button>
+          <button id="resume-control" type="button" onclick="control('resume')" th:disabled="${status.simulationState != T(com.broadcastsim.core.common.enums.SimulationState).PAUSED}">Resume</button>
+          <button id="stop-control" type="button" onclick="control('stop')" th:disabled="${status.simulationState == T(com.broadcastsim.core.common.enums.SimulationState).STOPPED}">Stop</button>
+          <button id="tick-control" type="button" onclick="control('tick')" th:disabled="${status.simulationState != T(com.broadcastsim.core.common.enums.SimulationState).RUNNING}">Tick</button>
+        </div>
+        <form class="fps-control" onsubmit="scheduleCameraFps(event)">
+          <label for="camera-fps">Camera FPS</label>
+          <div class="fps-input">
+            <input id="camera-fps" name="framesPerSecond" type="number" min="1" step="0.001" value="60" required>
+            <button type="submit">Schedule FPS</button>
+          </div>
+        </form>
+      </section>
 
-  <h2>Devices</h2>
-  <table>
-    <thead><tr><th>ID</th><th>Type</th><th>State</th><th>Health</th><th>CPU</th><th>Memory (MB)</th><th>Temperature (C)</th><th>Bandwidth (Mbps)</th></tr></thead>
-    <tbody>
-      <tr th:each="device : ${status.devices}">
-        <td th:text="${device.deviceId}">CAM-001</td>
-        <td th:text="${device.deviceType}">CAMERA</td>
-        <td th:text="${device.deviceState}">ONLINE</td>
-        <td th:text="${device.healthStatus}">NORMAL</td>
-        <td th:text="${device.metrics.cpuUsagePercentage}">0.0</td>
-        <td th:text="${device.metrics.memoryUsageMb}">0.0</td>
-        <td th:text="${device.metrics.temperatureCelsius}">25.0</td>
-        <td th:text="${device.metrics.bandwidthMegabitsPerSecond}">0.0</td>
-      </tr>
-    </tbody>
-  </table>
+      <section class="card simulation-view" aria-label="Main simulation view">
+        <div class="section-heading">
+          <h2 id="broadcast-pipeline">Broadcast Pipeline</h2>
+        </div>
+        <div class="pipeline" aria-labelledby="broadcast-pipeline">
+          <th:block th:each="device, iteration : ${status.devices}">
+            <article class="pipeline-device" th:classappend="' health-' + ${#strings.toLowerCase(device.healthStatus.name())}" th:data-device-id="${device.deviceId}">
+              <strong th:text="${device.deviceId}">CAM-001</strong>
+              <span th:text="${device.deviceType}">CAMERA</span>
+              <span class="pipeline-health" th:text="${device.healthStatus}">NORMAL</span>
+            </article>
+            <span class="pipeline-arrow" th:if="${!iteration.last}" aria-hidden="true">&rarr;</span>
+          </th:block>
+        </div>
 
-  <h2>Active Alarms</h2>
-  <p th:if="${#lists.isEmpty(status.activeAlarms)}">No active alarms.</p>
-  <ul th:if="${!#lists.isEmpty(status.activeAlarms)}">
-    <li th:each="alarm : ${status.activeAlarms}" th:text="${alarm.deviceId + ': ' + alarm.severity}">Alarm</li>
-  </ul>
+        <div class="section-heading metrics-heading">
+          <h2 id="device-metrics">Device Metrics</h2>
+        </div>
+        <div class="table-wrap metrics-table">
+          <table aria-labelledby="device-metrics">
+            <thead>
+              <tr><th>Device</th><th>CPU</th><th>Memory</th><th>Temperature</th><th>Bandwidth</th><th>Health</th></tr>
+            </thead>
+            <tbody>
+              <tr th:each="device : ${status.devices}" th:data-device-id="${device.deviceId}">
+                <td th:text="${device.deviceId}">CAM-001</td>
+                <td class="device-cpu" th:text="${#numbers.formatDecimal(device.metrics.cpuUsagePercentage, 1, 1) + '%'}">0.0%</td>
+                <td class="device-memory" th:text="${#numbers.formatDecimal(device.metrics.memoryUsageMb, 1, 1) + ' MB'}">0.0 MB</td>
+                <td class="device-temperature" th:text="${#numbers.formatDecimal(device.metrics.temperatureCelsius, 1, 2) + '°C'}">25.00°C</td>
+                <td class="device-bandwidth" th:text="${#numbers.formatDecimal(device.metrics.bandwidthMegabitsPerSecond, 1, 2) + ' Mbps'}">0.00 Mbps</td>
+                <td><span class="health-badge device-health" th:classappend="' health-' + ${#strings.toLowerCase(device.healthStatus.name())}" th:text="${device.healthStatus}">NORMAL</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
-  <h2>Recent Timeline Snapshots</h2>
-  <ul>
-    <li th:each="snapshot : ${timeline}" th:text="${snapshot.simulationTime + ' - ' + #lists.size(snapshot.deviceSnapshots) + ' devices'}">Snapshot</li>
-  </ul>
+      <section class="card alarm-panel" aria-labelledby="active-alarms">
+        <h2 id="active-alarms">Active Alarms</h2>
+        <div id="active-alarms-content">
+          <p th:if="${#lists.isEmpty(status.activeAlarms)}">No active alarms.</p>
+          <div class="table-wrap" th:if="${!#lists.isEmpty(status.activeAlarms)}">
+            <table>
+              <thead><tr><th>Device</th><th>Severity</th><th>Health</th></tr></thead>
+              <tbody>
+                <tr th:each="alarm : ${status.activeAlarms}">
+                  <td th:text="${alarm.deviceId}">ENC-001</td>
+                  <td><span class="alarm-badge" th:classappend="' alarm-' + ${#strings.toLowerCase(alarm.severity.name())}" th:text="${alarm.severity}">CRITICAL</span></td>
+                  <td th:text="${alarm.healthStatus}">CRITICAL</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <section class="card timeline-panel" aria-labelledby="recent-timeline">
+      <h2 id="recent-timeline">Recent Timeline</h2>
+      <div class="table-wrap timeline-table">
+        <table>
+          <thead><tr><th>Time</th><th>Devices</th><th>Health</th><th>Alarms</th></tr></thead>
+          <tbody id="timeline-rows">
+            <tr th:each="snapshot : ${timeline}">
+              <td th:text="${snapshot.elapsedSimulationTime}">00:00:01</td>
+              <td th:text="${snapshot.deviceCount}">3</td>
+              <td th:text="${snapshot.healthStatus}">NORMAL</td>
+              <td th:text="${snapshot.activeAlarmCount}">0</td>
+            </tr>
+            <tr th:if="${#lists.isEmpty(timeline)}"><td colspan="4">No snapshots captured.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
   <script>
-    function control(operation) {
-      fetch('/api/simulation/' + operation, { method: 'POST' }).then(() => window.location.reload());
+    let refreshTimer;
+
+    function healthClass(value) {
+      return 'health-' + value.toLowerCase();
     }
+
+    function stateClass(value) {
+      return 'state-' + value.toLowerCase();
+    }
+
+    function formatNumber(value, decimals, suffix) {
+      return Number(value).toFixed(decimals) + suffix;
+    }
+
+    function formatElapsedTime(simulationTime) {
+      const totalSeconds = Math.max(0, Math.floor(new Date(simulationTime).getTime() / 1000));
+      const hours = String(Math.floor(totalSeconds / 3600)).padStart(2, '0');
+      const minutes = String(Math.floor((totalSeconds % 3600) / 60)).padStart(2, '0');
+      const seconds = String(totalSeconds % 60).padStart(2, '0');
+      return hours + ':' + minutes + ':' + seconds;
+    }
+
+    function displayDeviceId(deviceId) {
+      return typeof deviceId === 'string' ? deviceId : deviceId.value;
+    }
+
+    function updateStateControls(state) {
+      document.getElementById('start-control').disabled = state !== 'STOPPED';
+      document.getElementById('pause-control').disabled = state !== 'RUNNING';
+      document.getElementById('resume-control').disabled = state !== 'PAUSED';
+      document.getElementById('stop-control').disabled = state === 'STOPPED';
+      document.getElementById('tick-control').disabled = state !== 'RUNNING';
+    }
+
+    function updateDevice(device) {
+      const metricRow = document.querySelector('.metrics-table tr[data-device-id="' + device.deviceId + '"]');
+      if (metricRow) {
+        metricRow.querySelector('.device-cpu').textContent = formatNumber(device.metrics.cpuUsagePercentage, 1, '%');
+        metricRow.querySelector('.device-memory').textContent = formatNumber(device.metrics.memoryUsageMb, 1, ' MB');
+        metricRow.querySelector('.device-temperature').textContent = formatNumber(device.metrics.temperatureCelsius, 2, '°C');
+        metricRow.querySelector('.device-bandwidth').textContent = formatNumber(device.metrics.bandwidthMegabitsPerSecond, 2, ' Mbps');
+        const health = metricRow.querySelector('.device-health');
+        health.textContent = device.healthStatus;
+        health.className = 'health-badge device-health ' + healthClass(device.healthStatus);
+      }
+      const pipelineDevice = document.querySelector('.pipeline-device[data-device-id="' + device.deviceId + '"]');
+      if (pipelineDevice) {
+        pipelineDevice.className = 'pipeline-device ' + healthClass(device.healthStatus);
+        pipelineDevice.querySelector('.pipeline-health').textContent = device.healthStatus;
+      }
+    }
+
+    function renderAlarms(alarms) {
+      const container = document.getElementById('active-alarms-content');
+      container.replaceChildren();
+      if (alarms.length === 0) {
+        const emptyMessage = document.createElement('p');
+        emptyMessage.textContent = 'No active alarms.';
+        container.append(emptyMessage);
+        return;
+      }
+      const tableWrap = document.createElement('div');
+      tableWrap.className = 'table-wrap';
+      const table = document.createElement('table');
+      table.innerHTML = '<thead><tr><th>Device</th><th>Severity</th><th>Health</th></tr></thead>';
+      const body = document.createElement('tbody');
+      alarms.forEach((alarm) => {
+        const row = document.createElement('tr');
+        const device = document.createElement('td');
+        device.textContent = displayDeviceId(alarm.deviceId);
+        const severity = document.createElement('td');
+        const badge = document.createElement('span');
+        badge.className = 'alarm-badge alarm-' + alarm.severity.toLowerCase();
+        badge.textContent = alarm.severity;
+        severity.append(badge);
+        const health = document.createElement('td');
+        health.textContent = alarm.healthStatus;
+        row.append(device, severity, health);
+        body.append(row);
+      });
+      table.append(body);
+      tableWrap.append(table);
+      container.append(tableWrap);
+    }
+
+    async function refreshTimeline() {
+      const response = await fetch('/api/simulation/timeline');
+      if (!response.ok) {
+        return;
+      }
+      const snapshots = await response.json();
+      const rows = document.getElementById('timeline-rows');
+      rows.replaceChildren();
+      const recentSnapshots = snapshots.slice(-10);
+      if (recentSnapshots.length === 0) {
+        const row = document.createElement('tr');
+        const cell = document.createElement('td');
+        cell.colSpan = 4;
+        cell.textContent = 'No snapshots captured.';
+        row.append(cell);
+        rows.append(row);
+        return;
+      }
+      recentSnapshots.forEach((snapshot) => {
+        const row = document.createElement('tr');
+        const elapsedTime = document.createElement('td');
+        elapsedTime.textContent = formatElapsedTime(snapshot.simulationTime);
+        const deviceCount = document.createElement('td');
+        deviceCount.textContent = snapshot.deviceSnapshots.length;
+        const health = document.createElement('td');
+        health.textContent = snapshot.deviceSnapshots.length === 0
+          ? ''
+          : snapshot.deviceSnapshots[0].healthStatus;
+        const alarmCount = document.createElement('td');
+        alarmCount.textContent = snapshot.activeAlarms.length;
+        row.append(elapsedTime, deviceCount, health, alarmCount);
+        rows.append(row);
+      });
+    }
+
+    function scheduleRefresh(state) {
+      window.clearTimeout(refreshTimer);
+      if (state === 'RUNNING') {
+        refreshTimer = window.setTimeout(refreshDashboard, 1000);
+      }
+    }
+
+    async function refreshDashboard() {
+      try {
+        const response = await fetch('/api/simulation/status');
+        if (!response.ok) {
+          return;
+        }
+        const status = await response.json();
+        const state = document.getElementById('simulation-state');
+        state.textContent = status.simulationState;
+        state.dataset.state = status.simulationState;
+        state.className = 'status-badge ' + stateClass(status.simulationState);
+        document.getElementById('simulation-time').textContent = formatElapsedTime(status.simulationTime);
+        document.getElementById('simulation-tick').textContent = status.currentTick;
+        document.getElementById('device-count').textContent = status.devices.length;
+        document.getElementById('alarm-count').textContent = status.activeAlarms.length;
+        status.devices.forEach(updateDevice);
+        renderAlarms(status.activeAlarms);
+        updateStateControls(status.simulationState);
+        await refreshTimeline();
+        scheduleRefresh(status.simulationState);
+      } catch (error) {
+        scheduleRefresh(document.getElementById('simulation-state').dataset.state);
+      }
+    }
+
+    async function control(operation) {
+      await fetch('/api/simulation/' + operation, { method: 'POST' });
+      refreshDashboard();
+    }
+
+    async function scheduleCameraFps(event) {
+      event.preventDefault();
+      const framesPerSecond = document.getElementById('camera-fps').value;
+      await fetch('/api/simulation/camera/fps?framesPerSecond=' + encodeURIComponent(framesPerSecond), { method: 'POST' });
+      refreshDashboard();
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      scheduleRefresh(document.getElementById('simulation-state').dataset.state);
+    });
   </script>
 </body>
 </html>

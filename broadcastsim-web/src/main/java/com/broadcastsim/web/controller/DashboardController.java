@@ -29,7 +29,8 @@ public class DashboardController {
   @GetMapping("/")
   public String dashboard(Model model) {
     model.addAttribute("status", simulationFacade.status());
-    model.addAttribute("timeline", simulationFacade.timeline());
+    model.addAttribute("elapsedSimulationTime", simulationFacade.elapsedSimulationTime());
+    model.addAttribute("timeline", simulationFacade.recentTimeline());
     return "dashboard";
   }
 }

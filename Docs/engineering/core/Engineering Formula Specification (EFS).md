@@ -222,7 +222,7 @@ Metric	Validation Rule
 CPU Usage	0 ≤ CPU ≤ 100
 Memory Usage	Memory ≥ 0
 Power Consumption	IdlePower ≤ Power ≤ MaximumPower
-Temperature	Temperature ≥ AmbientTemperature
+Temperature	AmbientTemperature ≤ Temperature ≤ ECS MaximumTemperature operating limit. The temperature calculation remains unclamped; a value above the ECS maximum is retained as the calculated observation and is an invalid operating condition.
 Signal Quality	0 ≤ SignalQuality ≤ 100
 Link Utilization	LinkUtilization ≥ 0
 Formula 11.4 – Device Failure Conditions
