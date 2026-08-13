@@ -1,5 +1,7 @@
 package com.broadcastsim.core.engine;
 
+import com.broadcastsim.core.alarm.Alarm;
+import com.broadcastsim.core.alarm.AlarmEngine;
 import com.broadcastsim.core.common.enums.HealthStatus;
 import com.broadcastsim.core.common.enums.SimulationState;
 import com.broadcastsim.core.device.base.AbstractDevice;
@@ -26,6 +28,7 @@ public final class BroadcastEngine {
   private final SimulationContext context;
   private final RuleEngine ruleEngine;
   private final SignalPropagationEngine signalPropagationEngine;
+  private final AlarmEngine alarmEngine;
   private SimulationState simulationState = SimulationState.STOPPED;
 
   /**
@@ -50,6 +53,7 @@ public final class BroadcastEngine {
     this.ruleEngine = new RuleEngine(context.getDeviceRegistry());
     this.signalPropagationEngine =
         new SignalPropagationEngine(context.getDeviceRegistry(), requiredSignalGraph);
+    this.alarmEngine = new AlarmEngine();
   }
 
   /**
@@ -100,8 +104,14 @@ public final class BroadcastEngine {
     RuleExecutionReport ruleExecutionReport = ruleEngine.execute(timestamp);
     SignalPropagationResult signalPropagationResult = signalPropagationEngine.propagate();
     evaluateHealth();
+    List<Alarm> alarms = alarmEngine.evaluate(context.getDeviceRegistry().getAll(), timestamp);
     return new SimulationTickResult(
-        tick, timestamp, ruleExecutionReport, signalPropagationResult, captureSnapshots(timestamp));
+        tick,
+        timestamp,
+        ruleExecutionReport,
+        signalPropagationResult,
+        alarms,
+        captureSnapshots(timestamp));
   }
 
   /**

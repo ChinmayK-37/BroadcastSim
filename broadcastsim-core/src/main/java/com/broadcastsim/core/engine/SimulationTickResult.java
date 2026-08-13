@@ -1,5 +1,6 @@
 package com.broadcastsim.core.engine;
 
+import com.broadcastsim.core.alarm.Alarm;
 import com.broadcastsim.core.device.runtime.DeviceSnapshot;
 import com.broadcastsim.core.rule.RuleExecutionReport;
 import com.broadcastsim.core.signal.SignalPropagationResult;
@@ -12,6 +13,7 @@ public record SimulationTickResult(
     Instant timestamp,
     RuleExecutionReport ruleExecutionReport,
     SignalPropagationResult signalPropagationResult,
+    List<Alarm> alarms,
     List<DeviceSnapshot> snapshots) {
 
   /**
@@ -21,9 +23,11 @@ public record SimulationTickResult(
    * @param timestamp the deterministic simulation timestamp
    * @param ruleExecutionReport aggregate device rule execution results
    * @param signalPropagationResult signal propagation outcome
+   * @param alarms alarm states evaluated during the tick
    * @param snapshots immutable runtime snapshots captured at the end of the tick
    */
   public SimulationTickResult {
+    alarms = List.copyOf(alarms);
     snapshots = List.copyOf(snapshots);
   }
 }

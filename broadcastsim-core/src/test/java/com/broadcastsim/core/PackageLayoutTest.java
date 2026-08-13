@@ -16,6 +16,7 @@ class PackageLayoutTest {
   private static final Path MAIN_SOURCE_ROOT = Path.of("src", "main", "java");
   private static final Path TEST_SOURCE_ROOT = Path.of("src", "test", "java");
   private static final Pattern PACKAGE_DECLARATION = Pattern.compile("(?m)^package\\s+([\\w.]+);");
+  private static final Pattern PATH_SEPARATOR = Pattern.compile("[\\\\/]");
 
   @Test
   void productionSourceDirectoriesMatchDeclaredPackages() throws IOException {
@@ -40,7 +41,9 @@ class PackageLayoutTest {
     Matcher matcher = PACKAGE_DECLARATION.matcher(source);
     assertEquals(true, matcher.find(), () -> "missing package declaration: " + sourceFile);
     String expectedPackage =
-        sourceRoot.relativize(sourceFile.getParent()).toString().replace('\\', '.');
+        PATH_SEPARATOR
+            .matcher(sourceRoot.relativize(sourceFile.getParent()).toString())
+            .replaceAll(".");
     assertEquals(expectedPackage, matcher.group(1), () -> "package mismatch: " + sourceFile);
   }
 

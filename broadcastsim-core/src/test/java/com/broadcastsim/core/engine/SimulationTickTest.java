@@ -8,6 +8,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import com.broadcastsim.core.common.enums.ConnectionStatus;
 import com.broadcastsim.core.common.enums.DeviceState;
 import com.broadcastsim.core.common.enums.DeviceType;
+import com.broadcastsim.core.common.enums.HealthStatus;
+import com.broadcastsim.core.common.enums.OperationalFailureType;
 import com.broadcastsim.core.common.enums.PortDirection;
 import com.broadcastsim.core.common.enums.PortType;
 import com.broadcastsim.core.common.enums.PropertyAccess;
@@ -151,6 +153,27 @@ class SimulationTickTest {
         result.ruleExecutionReport().results().get(1).getExecutionStatus());
     assertFalse(result.ruleExecutionReport().isSuccessful());
     assertEquals(1244.16, camera.getDeviceRuntime().getMetrics().getBandwidthMegabitsPerSecond());
+  }
+
+  @Test
+  void includesOperationalFailureAlarmInTickResult() {
+    DeviceRegistry registry = new DeviceRegistry();
+    Camera camera = camera();
+    camera.getDeviceRuntime().addOperationalFailure(OperationalFailureType.POWER_UNAVAILABLE);
+    registry.register(camera);
+    BroadcastEngine engine = engine(registry, new SignalGraph());
+    engine.start();
+
+    SimulationTickResult result = engine.tick();
+
+    assertEquals(1, result.alarms().size());
+    assertEquals(HealthStatus.FAILED, result.alarms().getFirst().getHealthStatus());
+    assertTrue(
+        result
+            .alarms()
+            .getFirst()
+            .getOperationalFailures()
+            .contains(OperationalFailureType.POWER_UNAVAILABLE));
   }
 
   private BroadcastEngine engine(DeviceRegistry deviceRegistry, SignalGraph signalGraph) {

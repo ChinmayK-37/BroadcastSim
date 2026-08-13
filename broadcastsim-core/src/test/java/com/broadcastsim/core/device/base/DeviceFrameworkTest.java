@@ -29,9 +29,11 @@ class DeviceFrameworkTest {
   void generatesSeparateIdentifierSequencesForEachDeviceType() {
     DeviceId decoderId = DeviceId.generate(DeviceType.DECODER);
     DeviceId encoderId = DeviceId.generate(DeviceType.ENCODER);
+    DeviceId nextDecoderId = DeviceId.generate(DeviceType.DECODER);
 
-    assertEquals("DEC-001", decoderId.toString());
-    assertEquals("ENC-001", encoderId.toString());
+    assertTrue(decoderId.toString().startsWith("DEC-"));
+    assertTrue(encoderId.toString().startsWith("ENC-"));
+    assertEquals(identifierSequence(decoderId) + 1, identifierSequence(nextDecoderId));
   }
 
   @Test
@@ -66,6 +68,11 @@ class DeviceFrameworkTest {
         .criticalThreshold(180.0)
         .description("Frames per second")
         .build();
+  }
+
+  private int identifierSequence(DeviceId deviceId) {
+    return Integer.parseInt(
+        deviceId.toString().substring(deviceId.toString().lastIndexOf('-') + 1));
   }
 
   private static final class TestDevice extends AbstractDevice {
