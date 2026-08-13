@@ -5,6 +5,7 @@ import com.broadcastsim.core.device.runtime.DeviceSnapshot;
 import com.broadcastsim.core.rule.RuleExecutionReport;
 import com.broadcastsim.core.scenario.ScenarioEvent;
 import com.broadcastsim.core.signal.SignalPropagationResult;
+import com.broadcastsim.core.timeline.SimulationSnapshot;
 import java.time.Instant;
 import java.util.List;
 
@@ -16,7 +17,8 @@ public record SimulationTickResult(
     SignalPropagationResult signalPropagationResult,
     List<ScenarioEvent> scenarioEvents,
     List<Alarm> alarms,
-    List<DeviceSnapshot> snapshots) {
+    List<DeviceSnapshot> snapshots,
+    SimulationSnapshot simulationSnapshot) {
 
   /**
    * Creates an immutable simulation tick result.
@@ -28,6 +30,7 @@ public record SimulationTickResult(
    * @param scenarioEvents events applied before rule execution
    * @param alarms alarm states evaluated during the tick
    * @param snapshots immutable runtime snapshots captured at the end of the tick
+   * @param simulationSnapshot immutable timeline observation created from the completed tick
    */
   public SimulationTickResult {
     scenarioEvents = List.copyOf(scenarioEvents);

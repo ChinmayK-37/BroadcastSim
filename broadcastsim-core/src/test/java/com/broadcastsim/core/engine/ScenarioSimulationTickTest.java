@@ -1,6 +1,7 @@
 package com.broadcastsim.core.engine;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.broadcastsim.core.common.enums.DeviceState;
 import com.broadcastsim.core.common.enums.DeviceType;
@@ -45,7 +46,7 @@ class ScenarioSimulationTickTest {
     registry.register(camera);
     ScenarioEvent scenarioEvent =
         ScenarioEvent.setProperty(
-            Instant.ofEpochSecond(10), camera.getDeviceId(), PropertyKey.FPS, 60.0);
+            Instant.ofEpochSecond(20), camera.getDeviceId(), PropertyKey.FPS, 60.0);
     Scenario scenario = new Scenario();
     scenario.schedule(scenarioEvent);
     BroadcastEngine engine =
@@ -59,12 +60,26 @@ class ScenarioSimulationTickTest {
             scenario);
     engine.start();
 
-    SimulationTickResult result = engine.tick();
+    SimulationTickResult firstResult = engine.tick();
+    SimulationTickResult secondResult = engine.tick();
 
     assertEquals(60.0, camera.getFramesPerSecond());
     assertEquals(1244.16, camera.getDeviceRuntime().getMetrics().getBandwidthMegabitsPerSecond());
     assertEquals(ScenarioEventStatus.EXECUTED, scenarioEvent.getExecutionStatus());
-    assertEquals(1, result.scenarioEvents().size());
+    assertTrue(firstResult.scenarioEvents().isEmpty());
+    assertEquals(1, secondResult.scenarioEvents().size());
+    assertEquals(2, engine.getTimeline().getAllSnapshots().size());
+    assertEquals(
+        622.08,
+        engine
+            .getTimeline()
+            .getAllSnapshots()
+            .getFirst()
+            .getDeviceSnapshots()
+            .getFirst()
+            .getMetrics()
+            .getBandwidthMegabitsPerSecond());
+    assertEquals(secondResult.simulationSnapshot(), engine.getTimeline().getAllSnapshots().get(1));
   }
 
   private Camera camera() {

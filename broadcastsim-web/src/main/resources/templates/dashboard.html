@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BroadcastSim MVP</title>
+</head>
+<body>
+  <h1>BroadcastSim</h1>
+  <p>State: <strong th:text="${status.simulationState}">STOPPED</strong></p>
+  <p>Simulation time: <span th:text="${status.simulationTime}">1970-01-01T00:00:00Z</span></p>
+  <p>Tick: <span th:text="${status.currentTick}">0</span></p>
+
+  <button type="button" onclick="control('start')">Start</button>
+  <button type="button" onclick="control('pause')">Pause</button>
+  <button type="button" onclick="control('resume')">Resume</button>
+  <button type="button" onclick="control('stop')">Stop</button>
+  <button type="button" onclick="control('tick')">Tick</button>
+
+  <h2>Devices</h2>
+  <table>
+    <thead><tr><th>ID</th><th>Type</th><th>State</th><th>Health</th><th>CPU</th><th>Memory (MB)</th><th>Temperature (C)</th><th>Bandwidth (Mbps)</th></tr></thead>
+    <tbody>
+      <tr th:each="device : ${status.devices}">
+        <td th:text="${device.deviceId}">CAM-001</td>
+        <td th:text="${device.deviceType}">CAMERA</td>
+        <td th:text="${device.deviceState}">ONLINE</td>
+        <td th:text="${device.healthStatus}">NORMAL</td>
+        <td th:text="${device.metrics.cpuUsagePercentage}">0.0</td>
+        <td th:text="${device.metrics.memoryUsageMb}">0.0</td>
+        <td th:text="${device.metrics.temperatureCelsius}">25.0</td>
+        <td th:text="${device.metrics.bandwidthMegabitsPerSecond}">0.0</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>Active Alarms</h2>
+  <p th:if="${#lists.isEmpty(status.activeAlarms)}">No active alarms.</p>
+  <ul th:if="${!#lists.isEmpty(status.activeAlarms)}">
+    <li th:each="alarm : ${status.activeAlarms}" th:text="${alarm.deviceId + ': ' + alarm.severity}">Alarm</li>
+  </ul>
+
+  <h2>Recent Timeline Snapshots</h2>
+  <ul>
+    <li th:each="snapshot : ${timeline}" th:text="${snapshot.simulationTime + ' - ' + #lists.size(snapshot.deviceSnapshots) + ' devices'}">Snapshot</li>
+  </ul>
+  <script>
+    function control(operation) {
+      fetch('/api/simulation/' + operation, { method: 'POST' }).then(() => window.location.reload());
+    }
+  </script>
+</body>
+</html>

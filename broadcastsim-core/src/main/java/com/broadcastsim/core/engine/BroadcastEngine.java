@@ -2,6 +2,7 @@ package com.broadcastsim.core.engine;
 
 import com.broadcastsim.core.alarm.Alarm;
 import com.broadcastsim.core.alarm.AlarmEngine;
+import com.broadcastsim.core.common.enums.AlarmState;
 import com.broadcastsim.core.common.enums.HealthStatus;
 import com.broadcastsim.core.common.enums.SimulationState;
 import com.broadcastsim.core.device.base.AbstractDevice;
@@ -20,6 +21,8 @@ import com.broadcastsim.core.scenario.ScenarioEventExecutor;
 import com.broadcastsim.core.signal.SignalGraph;
 import com.broadcastsim.core.signal.SignalPropagationEngine;
 import com.broadcastsim.core.signal.SignalPropagationResult;
+import com.broadcastsim.core.timeline.SimulationSnapshot;
+import com.broadcastsim.core.timeline.Timeline;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +37,7 @@ public final class BroadcastEngine {
   private final AlarmEngine alarmEngine;
   private final Scenario scenario;
   private final ScenarioEventExecutor scenarioEventExecutor;
+  private final Timeline timeline;
   private SimulationState simulationState = SimulationState.STOPPED;
 
   /**
@@ -72,6 +76,7 @@ public final class BroadcastEngine {
     this.alarmEngine = new AlarmEngine();
     this.scenario = Objects.requireNonNull(scenario, "scenario must not be null");
     this.scenarioEventExecutor = new ScenarioEventExecutor(context.getDeviceRegistry());
+    this.timeline = new Timeline();
   }
 
   /**
@@ -125,6 +130,16 @@ public final class BroadcastEngine {
     SignalPropagationResult signalPropagationResult = signalPropagationEngine.propagate();
     evaluateHealth();
     List<Alarm> alarms = alarmEngine.evaluate(context.getDeviceRegistry().getAll(), timestamp);
+    List<Alarm> activeAlarms =
+        alarms.stream().filter(alarm -> alarm.getState() == AlarmState.RAISED).toList();
+    List<DeviceSnapshot> deviceSnapshots = captureSnapshots(timestamp);
+    SimulationSnapshot simulationSnapshot =
+        SimulationSnapshot.builder()
+            .simulationTime(timestamp)
+            .deviceSnapshots(deviceSnapshots)
+            .activeAlarms(activeAlarms)
+            .build();
+    timeline.addSnapshot(simulationSnapshot);
     return new SimulationTickResult(
         tick,
         timestamp,
@@ -132,7 +147,8 @@ public final class BroadcastEngine {
         signalPropagationResult,
         scenarioEvents,
         alarms,
-        captureSnapshots(timestamp));
+        deviceSnapshots,
+        simulationSnapshot);
   }
 
   /**
@@ -160,6 +176,15 @@ public final class BroadcastEngine {
    */
   public Scenario getScenario() {
     return scenario;
+  }
+
+  /**
+   * Returns the in-memory history of completed simulation ticks.
+   *
+   * @return the simulation timeline
+   */
+  public Timeline getTimeline() {
+    return timeline;
   }
 
   private Instant simulationTimestamp(long tick) {
@@ -210,6 +235,7 @@ public final class BroadcastEngine {
                 .deviceId(device.getDeviceId())
                 .timestamp(timestamp)
                 .deviceState(runtime.getDeviceState())
+                .healthStatus(runtime.getHealthStatus())
                 .metrics(runtime.getMetrics())
                 .build());
       }

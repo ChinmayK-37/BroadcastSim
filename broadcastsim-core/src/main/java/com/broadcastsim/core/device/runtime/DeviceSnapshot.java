@@ -1,6 +1,7 @@
 package com.broadcastsim.core.device.runtime;
 
 import com.broadcastsim.core.common.enums.DeviceState;
+import com.broadcastsim.core.common.enums.HealthStatus;
 import com.broadcastsim.core.valueobject.DeviceId;
 import java.time.Instant;
 import lombok.Builder;
@@ -14,5 +15,6 @@ public class DeviceSnapshot {
   DeviceId deviceId;
   Instant timestamp;
   DeviceState deviceState;
+  @Builder.Default HealthStatus healthStatus = HealthStatus.NORMAL;
   DeviceMetrics metrics;
 }
