@@ -11,10 +11,11 @@ public final class DeviceLifecycleManager {
   private static final Map<DeviceState, Set<DeviceState>> ALLOWED_TRANSITIONS =
       Map.of(
           DeviceState.CREATED, Set.of(DeviceState.ONLINE),
-          DeviceState.ONLINE, Set.of(DeviceState.WARNING),
+          DeviceState.ONLINE, Set.of(DeviceState.WARNING, DeviceState.OFFLINE),
           DeviceState.WARNING, Set.of(DeviceState.FAILED),
           DeviceState.FAILED, Set.of(DeviceState.RECOVERING),
-          DeviceState.RECOVERING, Set.of(DeviceState.ONLINE));
+          DeviceState.RECOVERING, Set.of(DeviceState.ONLINE),
+          DeviceState.OFFLINE, Set.of(DeviceState.ONLINE));
 
   /**
    * Transitions runtime state to a valid next lifecycle state.

@@ -14,6 +14,9 @@ import com.broadcastsim.core.engineering.constants.NetworkConstants;
 import com.broadcastsim.core.engineering.constants.PowerConstants;
 import com.broadcastsim.core.rule.RuleEngine;
 import com.broadcastsim.core.rule.RuleExecutionReport;
+import com.broadcastsim.core.scenario.Scenario;
+import com.broadcastsim.core.scenario.ScenarioEvent;
+import com.broadcastsim.core.scenario.ScenarioEventExecutor;
 import com.broadcastsim.core.signal.SignalGraph;
 import com.broadcastsim.core.signal.SignalPropagationEngine;
 import com.broadcastsim.core.signal.SignalPropagationResult;
@@ -29,6 +32,8 @@ public final class BroadcastEngine {
   private final RuleEngine ruleEngine;
   private final SignalPropagationEngine signalPropagationEngine;
   private final AlarmEngine alarmEngine;
+  private final Scenario scenario;
+  private final ScenarioEventExecutor scenarioEventExecutor;
   private SimulationState simulationState = SimulationState.STOPPED;
 
   /**
@@ -37,7 +42,7 @@ public final class BroadcastEngine {
    * @param context the engine infrastructure context
    */
   public BroadcastEngine(SimulationContext context) {
-    this(context, new SignalGraph());
+    this(context, new SignalGraph(), new Scenario());
   }
 
   /**
@@ -47,6 +52,17 @@ public final class BroadcastEngine {
    * @param signalGraph the topology used during signal propagation
    */
   public BroadcastEngine(SimulationContext context, SignalGraph signalGraph) {
+    this(context, signalGraph, new Scenario());
+  }
+
+  /**
+   * Creates an engine using the supplied signal topology and scheduled scenario changes.
+   *
+   * @param context the engine infrastructure context
+   * @param signalGraph the topology used during signal propagation
+   * @param scenario the ordered scenario events to evaluate during ticks
+   */
+  public BroadcastEngine(SimulationContext context, SignalGraph signalGraph, Scenario scenario) {
     this.context = Objects.requireNonNull(context, "simulation context must not be null");
     SignalGraph requiredSignalGraph =
         Objects.requireNonNull(signalGraph, "signal graph must not be null");
@@ -54,6 +70,8 @@ public final class BroadcastEngine {
     this.signalPropagationEngine =
         new SignalPropagationEngine(context.getDeviceRegistry(), requiredSignalGraph);
     this.alarmEngine = new AlarmEngine();
+    this.scenario = Objects.requireNonNull(scenario, "scenario must not be null");
+    this.scenarioEventExecutor = new ScenarioEventExecutor(context.getDeviceRegistry());
   }
 
   /**
@@ -101,6 +119,8 @@ public final class BroadcastEngine {
     requireState(SimulationState.RUNNING);
     long tick = context.getSimulationClock().advance();
     Instant timestamp = simulationTimestamp(tick);
+    List<ScenarioEvent> scenarioEvents =
+        scenarioEventExecutor.executeDueEvents(scenario, timestamp);
     RuleExecutionReport ruleExecutionReport = ruleEngine.execute(timestamp);
     SignalPropagationResult signalPropagationResult = signalPropagationEngine.propagate();
     evaluateHealth();
@@ -110,6 +130,7 @@ public final class BroadcastEngine {
         timestamp,
         ruleExecutionReport,
         signalPropagationResult,
+        scenarioEvents,
         alarms,
         captureSnapshots(timestamp));
   }
@@ -130,6 +151,15 @@ public final class BroadcastEngine {
    */
   public SimulationContext getContext() {
     return context;
+  }
+
+  /**
+   * Returns the scenario evaluated before rule execution during each tick.
+   *
+   * @return the mutable scenario schedule
+   */
+  public Scenario getScenario() {
+    return scenario;
   }
 
   private Instant simulationTimestamp(long tick) {
