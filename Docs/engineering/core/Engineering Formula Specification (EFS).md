@@ -131,6 +131,7 @@ Estimate router operating temperature.
 
 Equation
 TemperatureNext = max(AmbientTemperature, CurrentTemperature + (Power × HeatCoefficient) - CoolingRate)
+
 Formula 8.6 – Router Memory Usage
 Purpose
 
